@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alert Invest Screener</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0f;
+    --surface: #12141a;
+    --surface2: #1a1d26;
+    --border: #252836;
+    --text: #e8eaf0;
+    --text-muted: #636880;
+    --text-dim: #3d4157;
+    --base-accent: #4a7cf7;
+    --graham-accent: #34c77b;
+    --lynch-accent: #f5a623;
+    --buffett-accent: #b668f5;
+    --pass: #34c77b;
+    --near: #f5a623;
+    --fail: #f76e6e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 15% 10%, rgba(74,124,247,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 40% at 85% 85%, rgba(182,104,245,0.05) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 44px 24px 100px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 44px;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 22px;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(34px, 5vw, 52px);
+    font-weight: 900;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #ffffff 0%, #9ba3c4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 15px;
+    font-weight: 300;
+  }
+
+  /* API KEY SETUP PANEL */
+  .setup-panel {
+    background: var(--surface);
+    border: 1px solid rgba(74,124,247,0.3);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 24px;
+    animation: fadeUp 0.6s 0.05s ease both;
+  }
+
+  .setup-panel h2 {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--base-accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .setup-panel p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+
+  .setup-panel a {
+    color: var(--base-accent);
+    text-decoration: none;
+  }
+
+  .setup-panel a:hover { text-decoration: underline; }
+
+  .api-key-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  #apiKeyInput {
+    flex: 1;
+    padding: 11px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  #apiKeyInput:focus {
+    border-color: var(--base-accent);
+    box-shadow: 0 0 0 3px rgba(74,124,247,0.12);
+  }
+
+  .save-key-btn {
+    padding: 11px 20px;
+    background: var(--surface2);
+    border: 1px solid var(--base-accent);
+    border-radius: 8px;
+    color: var(--base-accent);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+
+  .save-key-btn:hover { background: rgba(74,124,247,0.1); }
+
+  .key-status {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    margin-top: 8px;
+    min-height: 16px;
+  }
+
+  .key-status.ok { color: var(--pass); }
+  .key-status.warn { color: var(--near); }
+
+  /* SEARCH */
+  .search-panel {
+    animation: fadeUp 0.6s 0.1s ease both;
+    margin-bottom: 28px;
+  }
+
+  .search-wrap {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  #tickerInput {
+    flex: 1;
+    padding: 18px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  #tickerInput::placeholder { color: var(--text-dim); font-size: 16px; letter-spacing: 0.04em; text-transform: none; }
+  #tickerInput:focus { border-color: var(--base-accent); box-shadow: 0 0 0 3px rgba(74,124,247,0.12); }
+
+  .search-btn {
+    padding: 0 32px;
+    background: linear-gradient(135deg, var(--base-accent), #6c9fff);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px rgba(74,124,247,0.3);
+    white-space: nowrap;
+    min-width: 160px;
+  }
+
+  .search-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+  .search-btn:active:not(:disabled) { transform: translateY(0); }
+  .search-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* LOADING */
+  .loading-panel {
+    display: none;
+    text-align: center;
+    padding: 56px 24px;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .loading-panel.visible { display: block; }
+
+  .loader-ring {
+    width: 52px; height: 52px;
+    border: 3px solid var(--border);
+    border-top-color: var(--base-accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 18px;
+  }
+
+  .loading-ticker {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 900;
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+  }
+
+  .loading-step {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ERROR */
+  .error-panel {
+    display: none;
+    background: rgba(247,110,110,0.08);
+    border: 1px solid rgba(247,110,110,0.25);
+    border-radius: 12px;
+    padding: 16px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--fail);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .error-panel.visible { display: block; }
+
+  /* RESULTS */
+  #results { display: none; animation: fadeUp 0.5s ease both; }
+  #results.visible { display: block; }
+
+  /* STOCK HEADER */
+  .stock-header-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 28px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .ticker-tag { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--base-accent); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+  .company-name { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; }
+  .stock-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .stock-price-block { text-align: right; }
+  .price-label { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .price { font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 900; }
+
+  .data-note {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 22px;
+    padding: 9px 14px;
+    background: var(--surface2);
+    border-radius: 8px;
+    border-left: 3px solid var(--border);
+  }
+
+  /* METRICS GRID */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 10px;
+    margin-bottom: 26px;
+  }
+
+  .metric-chip {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    position: relative;
+    cursor: default;
+  }
+
+  .metric-chip .m-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    position: relative;
+  }
+
+  .metric-chip .m-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .metric-chip .m-value.na { color: var(--text-dim); font-style: italic; font-size: 12px; }
+
+  .metric-chip .m-label .tip-bubble { left: 0; bottom: calc(100% + 8px); width: 280px; }
+
+  /* OVERALL SIGNAL */
+  .overall-signal {
+    background: var(--surface2);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .overall-signal::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 60% 60% at 50% 0%, var(--signal-glow, transparent) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .signal-label { font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; }
+  .signal-text { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 900; margin-bottom: 8px; }
+  .signal-desc { font-size: 13px; color: var(--text-muted); max-width: 480px; margin: 0 auto; line-height: 1.6; }
+
+  /* SUMMARY BADGES */
+  .summary-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s;
+  }
+
+  .summary-card:hover { transform: translateY(-2px); }
+  .summary-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .summary-card.base::before { background: var(--base-accent); }
+  .summary-card.graham::before { background: var(--graham-accent); }
+  .summary-card.lynch::before { background: var(--lynch-accent); }
+  .summary-card.buffett::before { background: var(--buffett-accent); }
+  .summary-card .slabel { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+
+  /* SCREEN SECTIONS */
+  .screen-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    margin-bottom: 14px;
+    overflow: hidden;
+    transition: box-shadow 0.3s;
+  }
+
+  .screen-section:hover { box-shadow: 0 4px 32px rgba(0,0,0,0.3); }
+
+  .screen-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid transparent;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .screen-section.open .screen-header { border-bottom-color: var(--border); }
+  .screen-header-left { display: flex; align-items: center; gap: 12px; }
+
+  .screen-num {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500;
+  }
+
+  .num-base { background: rgba(74,124,247,0.15); color: var(--base-accent); }
+  .num-graham { background: rgba(52,199,123,0.15); color: var(--graham-accent); }
+  .num-lynch { background: rgba(245,166,35,0.15); color: var(--lynch-accent); }
+  .num-buffett { background: rgba(182,104,245,0.15); color: var(--buffett-accent); }
+
+  .screen-title { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 700; }
+  .screen-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .chevron { color: var(--text-dim); font-size: 18px; transition: transform 0.2s; }
+  .screen-section.open .chevron { transform: rotate(180deg); }
+  .screen-body { display: none; padding: 18px 24px 22px; }
+  .screen-section.open .screen-body { display: block; }
+
+  /* CRITERIA ROWS */
+  .criteria-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .criterion-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--surface2);
+    border-radius: 10px;
+    border: 1px solid transparent;
+    transition: border-color 0.2s;
+  }
+
+  .criterion-row.passing { border-color: rgba(52,199,123,0.25); background: rgba(52,199,123,0.05); }
+  .criterion-row.failing { border-color: rgba(247,110,110,0.25); background: rgba(247,110,110,0.05); }
+  .criterion-row.na { opacity: 0.45; }
+
+  .criterion-left { display: flex; align-items: center; gap: 10px; }
+  .criterion-icon { font-size: 14px; width: 20px; text-align: center; }
+  .criterion-name { font-size: 13px; font-weight: 500; position: relative; }
+  .criterion-threshold { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text-muted); margin-top: 2px; }
+  .criterion-right { text-align: right; }
+  .criterion-value { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; }
+  .criterion-value.pass-color { color: var(--pass); }
+  .criterion-value.fail-color { color: var(--fail); }
+  .criterion-value.na-color { color: var(--text-dim); font-style: italic; }
+
+  /* RESULT BADGES */
+  .result-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 100px;
+  }
+
+  .badge-pass { background: rgba(52,199,123,0.15); color: var(--pass); }
+  .badge-fail { background: rgba(247,110,110,0.12); color: var(--fail); }
+  .badge-candidate { background: rgba(52,199,123,0.15); color: var(--pass); }
+  .badge-near { background: rgba(245,166,35,0.15); color: var(--near); }
+  .badge-nosignal { background: rgba(100,100,120,0.12); color: var(--text-muted); }
+
+  /* GRAHAM CALC */
+  .graham-calc {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .gc-formula { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+  .gc-number { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; color: var(--graham-accent); }
+
+  /* TOOLTIPS */
+  .has-tip { position: relative; cursor: help; }
+
+  .criterion-name.has-tip,
+  .m-label.has-tip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .tip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px; height: 15px;
+    border-radius: 50%;
+    background: var(--border);
+    color: var(--text-muted);
+    font-size: 9px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .has-tip:hover .tip-icon,
+  .metric-chip:hover .tip-icon { background: var(--base-accent); color: #fff; }
+
+  .tip-bubble {
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 10px);
+    width: 300px;
+    background: #1e2130;
+    border: 1px solid rgba(74,124,247,0.35);
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(4px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    z-index: 200;
+    font-weight: 400;
+  }
+
+  .tip-bubble.flip-left { left: auto; right: 0; }
+
+  .has-tip:hover .tip-bubble,
+  .metric-chip:hover .tip-bubble { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+  .tip-bubble::after {
+    content: '';
+    position: absolute;
+    top: 100%; left: 18px;
+    border: 6px solid transparent;
+    border-top-color: rgba(74,124,247,0.35);
+  }
+
+  .tip-bubble.flip-left::after { left: auto; right: 18px; }
+
+  .tip-calc {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--base-accent);
+    margin-bottom: 7px;
+    padding-bottom: 7px;
+    border-bottom: 1px solid var(--border);
+    line-height: 1.5;
+  }
+
+  .tip-why { font-size: 12px; color: #a0a8c0; line-height: 1.55; }
+  .tip-why strong { color: var(--text); font-weight: 600; }
+
+  /* SECTION DIVIDER */
+  .section-divider {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 22px 0 14px;
+  }
+
+  /* DISCLAIMER */
+  .disclaimer {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 40px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    line-height: 1.6;
+  }
+
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+  @media (max-width: 600px) {
+    .summary-row { grid-template-columns: repeat(2,1fr); }
+    .search-wrap { flex-direction: column; }
+    .search-btn { padding: 16px; }
+    .stock-header-card { flex-direction: column; }
+    .stock-price-block { text-align: left; }
+    .tip-bubble { width: 240px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="header-badge">📊 Alert Invest Screener</div>
+    <h1>Legendary Investor<br>Stock Screener</h1>
+    <p class="subtitle">Graham · Lynch · Buffett — four frameworks, one ticker</p>
+  </header>
+
+  <!-- API KEY SETUP -->
+  <div class="setup-panel" id="setupPanel">
+    <h2>// Step 1 — Free API Key Required</h2>
+    <p>
+      This screener uses <a href="https://site.financialmodelingprep.com/developer/docs" target="_blank">Financial Modeling Prep</a> for live financial data.
+      Get your free API key at <a href="https://financialmodelingprep.com/register" target="_blank">financialmodelingprep.com/register</a>
+      (free tier: 250 requests/day, no credit card needed).
+      Your key is saved in your browser only.
+    </p>
+    <div class="api-key-row">
+      <input type="password" id="apiKeyInput" placeholder="Paste your FMP API key here…" autocomplete="off">
+      <button class="save-key-btn" onclick="saveApiKey()">Save Key</button>
+    </div>
+    <div class="key-status" id="keyStatus"></div>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="search-panel">
+    <div class="search-wrap">
+      <input type="text" id="tickerInput" placeholder="Enter ticker, e.g. AAPL, KO, ELO.OL…" maxlength="12" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button class="search-btn" id="searchBtn" onclick="runSearch()">Analyze Stock</button>
+    </div>
+  </div>
+
+  <div class="loading-panel" id="loadingPanel">
+    <div class="loader-ring"></div>
+    <div class="loading-ticker" id="loadingTicker"></div>
+    <div class="loading-step" id="loadingStep">Fetching financial data…</div>
+  </div>
+
+  <div class="error-panel" id="errorPanel"></div>
+
+  <div id="results">
+    <div class="stock-header-card" id="stockHeaderCard"></div>
+    <div class="data-note" id="dataNote"></div>
+
+    <div class="section-divider">// Raw Metrics Retrieved</div>
+    <div class="metrics-grid" id="metricsGrid"></div>
+
+    <div class="section-divider">// Overall Signal</div>
+    <div class="overall-signal" id="overallSignal">
+      <div class="signal-label">Overall Signal</div>
+      <div class="signal-text" id="signalText"></div>
+      <div class="signal-desc" id="signalDesc"></div>
+    </div>
+
+    <div class="section-divider">// Screen Results</div>
+    <div class="summary-row">
+      <div class="summary-card base"><div class="slabel">Base Filter</div><div id="badgeBase"></div></div>
+      <div class="summary-card graham"><div class="slabel">Graham</div><div id="badgeGraham"></div></div>
+      <div class="summary-card lynch"><div class="slabel">Lynch</div><div id="badgeLynch"></div></div>
+      <div class="summary-card buffett"><div class="slabel">Buffett</div><div id="badgeBuffett"></div></div>
+    </div>
+
+    <div class="screen-section open" id="sectionBase">
+      <div class="screen-header" onclick="toggleSection('sectionBase')">
+        <div class="screen-header-left">
+          <div class="screen-num num-base">1</div>
+          <div><div class="screen-title">The Base Filter</div><div class="screen-subtitle">All five must pass simultaneously</div></div>
+        </div>
+        <div class="chevron">▾</div>
+      </div>
+      <div class="screen-body"><div class="criteria-list" id="listBase"></div></div>
+    </div>
+
+    <div class="screen-section open" id="sectionGraham">
+      <div class="screen-header" onclick="toggleSection('sectionGraham')">
+        <div class="screen-header-left">
+          <div class="screen-num num-graham">2</div>
+          <div><div class="screen-title">The Graham Screen</div><div class="screen-subtitle">Benjamin Graham — Value First</div></div>
+        </div>
+        <div class="chevron">▾</div>
+      </div>
+      <div class="screen-body"><div id="grahamCalc"></div><div class="criteria-list" id="listGraham"></div></div>
+    </div>
+
+    <div class="screen-section open" id="sectionLynch">
+      <div class="screen-header" onclick="toggleSection('sectionLynch')">
+        <div class="screen-header-left">
+          <div class="screen-num num-lynch">3</div>
+          <div><div class="screen-title">The Lynch Screen</div><div class="screen-subtitle">Peter Lynch — Growth at a Reasonable Price</div></div>
+        </div>
+        <div class="chevron">▾</div>
+      </div>
+      <div class="screen-body"><div class="criteria-list" id="listLynch"></div></div>
+    </div>
+
+    <div class="screen-section open" id="sectionBuffett">
+      <div class="screen-header" onclick="toggleSection('sectionBuffett')">
+        <div class="screen-header-left">
+          <div class="screen-num num-buffett">4</div>
+          <div><div class="screen-title">The Buffett Screen</div><div class="screen-subtitle">Warren Buffett — Quality Compounding</div></div>
+        </div>
+        <div class="chevron">▾</div>
+      </div>
+      <div class="screen-body"><div class="criteria-list" id="listBuffett"></div></div>
+    </div>
+
+    <div class="disclaimer">⚠ For informational and educational purposes only. Not financial advice.<br>Data provided by Financial Modeling Prep. Always verify with official sources. Invest at your own risk.</div>
+  </div>
+
+</div>
+<script>
+// ─── TOOLTIP DEFINITIONS ────────────────────────────────────────────────────
+
+const TIPS = {
+  pe_ratio: {
+    calc: 'P/E = Stock Price ÷ Earnings Per Share (EPS)',
+    why: '<strong>Why it matters:</strong> A low P/E suggests you\'re paying less for each dollar of earnings — Graham and Buffett both sought P/E below 15 to avoid overpaying for a business.'
+  },
+  peg_ratio: {
+    calc: 'PEG = P/E Ratio ÷ Annual EPS Growth Rate (%)',
+    why: '<strong>Why it matters:</strong> PEG adjusts the P/E for growth — a PEG below 1.0 means you may be getting growth at a bargain price, which is the cornerstone of Lynch\'s strategy.'
+  },
+  free_cash_flow: {
+    calc: 'FCF = Operating Cash Flow − Capital Expenditures',
+    why: '<strong>Why it matters:</strong> Positive FCF means the business generates real cash after maintaining its assets — Buffett called this the lifeblood of a great business.'
+  },
+  debt_to_equity: {
+    calc: 'D/E = Total Debt ÷ Shareholders\' Equity',
+    why: '<strong>Why it matters:</strong> High debt amplifies risk during downturns — value investors prefer D/E below 0.5 so the company can weather recessions without distress.'
+  },
+  roic: {
+    calc: 'ROIC = Net Operating Profit After Tax ÷ Invested Capital',
+    why: '<strong>Why it matters:</strong> ROIC measures how efficiently a company turns capital into profit — Buffett considers consistently high ROIC the hallmark of a durable competitive moat.'
+  },
+  eps_ttm: {
+    calc: 'EPS = Net Income ÷ Diluted Shares Outstanding (trailing 12 months)',
+    why: '<strong>Why it matters:</strong> Positive EPS confirms the company is profitable — Lynch required positive earnings as a basic sanity check before considering any growth stock.'
+  },
+  book_value: {
+    calc: 'BVPS = (Total Assets − Total Liabilities) ÷ Shares Outstanding',
+    why: '<strong>Why it matters:</strong> Book value is the theoretical liquidation value per share — Graham used it alongside EPS to estimate a stock\'s intrinsic floor price.'
+  },
+  eps_growth: {
+    calc: 'EPS Growth = (EPS This Year − EPS Last Year) ÷ EPS Last Year × 100',
+    why: '<strong>Why it matters:</strong> Lynch wanted growth between 10–30% — too slow means a boring business, too fast means growth may be unsustainable or already priced in.'
+  },
+  fcf_yield: {
+    calc: 'FCF Yield = Free Cash Flow ÷ Market Capitalization × 100',
+    why: '<strong>Why it matters:</strong> FCF yield above 5% means the company generates meaningful cash relative to its market value — Buffett views this like a bond\'s coupon rate on your investment.'
+  },
+  revenue_growth: {
+    calc: 'Revenue Growth = (Revenue This Year − Revenue Last Year) ÷ Revenue Last Year × 100',
+    why: '<strong>Why it matters:</strong> Sustained revenue growth above 5% signals the business is expanding — Buffett looks for this as evidence a company\'s competitive moat is holding firm.'
+  },
+  operating_margin: {
+    calc: 'Operating Margin = Operating Income ÷ Total Revenue × 100',
+    why: '<strong>Why it matters:</strong> A margin above 15% indicates pricing power and efficiency — Buffett considers consistently high margins a signature of a durable competitive advantage.'
+  },
+  price_vs_graham: {
+    calc: 'Graham Number = √( 22.5 × EPS × Book Value per Share )',
+    why: '<strong>Why it matters:</strong> A stock trading below its Graham Number is buying with a "margin of safety" — Graham\'s central principle that protects investors from errors and bad luck.'
+  }
+};
+
+function tipHTML(key) {
+  const t = TIPS[key];
+  if (!t) return '';
+  return `<span class="tip-icon">?</span><div class="tip-bubble"><div class="tip-calc">${t.calc}</div><div class="tip-why">${t.why}</div></div>`;
+}
+
+// ─── API KEY MANAGEMENT ──────────────────────────────────────────────────────
+
+function saveApiKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) { setKeyStatus('Please paste a valid API key.', false); return; }
+  localStorage.setItem('fmp_api_key', key);
+  setKeyStatus('✔ Key saved — ready to analyze stocks.', true);
+  document.getElementById('apiKeyInput').value = '';
+}
+
+function getApiKey() {
+  return localStorage.getItem('fmp_api_key') || '';
+}
+
+function setKeyStatus(msg, ok) {
+  const el = document.getElementById('keyStatus');
+  el.textContent = msg;
+  el.className = 'key-status ' + (ok ? 'ok' : 'warn');
+}
+
+// On load — show saved key status
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = getApiKey();
+  if (saved) {
+    setKeyStatus('✔ API key loaded from browser storage.', true);
+    document.getElementById('apiKeyInput').placeholder = '••••••••••••••••••••••••••••••••';
+  }
+});
+
+// ─── UI HELPERS ──────────────────────────────────────────────────────────────
+
+let isRunning = false;
+
+function setBtnState(loading) {
+  const btn = document.getElementById('searchBtn');
+  btn.disabled = loading;
+  btn.textContent = loading ? 'Fetching…' : 'Analyze Stock';
+}
+
+function setLoading(show, ticker = '') {
+  document.getElementById('loadingPanel').classList.toggle('visible', show);
+  document.getElementById('loadingTicker').textContent = ticker.toUpperCase();
+}
+
+function setLoadingStep(msg) {
+  document.getElementById('loadingStep').textContent = msg;
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorPanel');
+  el.innerHTML = msg;
+  el.classList.add('visible');
+}
+
+function clearError() {
+  document.getElementById('errorPanel').classList.remove('visible');
+}
+
+function hideResults() {
+  document.getElementById('results').classList.remove('visible');
+}
+
+function toggleSection(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+function makeBadge(type, label) {
+  const cls = { pass:'badge-pass', fail:'badge-fail', candidate:'badge-candidate', near:'badge-near', nosignal:'badge-nosignal' };
+  const ico = { pass:'✅', fail:'✗', candidate:'✅', near:'🟡', nosignal:'—' };
+  return `<span class="result-badge ${cls[type]}">${ico[type]} ${label}</span>`;
+}
+
+function criterionRow(name, threshold, value, pass, tipKey) {
+  const tip = tipKey ? tipHTML(tipKey) : '';
+  const nameEl = tipKey
+    ? `<div class="criterion-name has-tip">${name}${tip}</div>`
+    : `<div class="criterion-name">${name}</div>`;
+
+  if (value === null || value === undefined) {
+    return `<div class="criterion-row na">
+      <div class="criterion-left"><div class="criterion-icon">?</div>
+      <div>${nameEl}<div class="criterion-threshold">${threshold}</div></div></div>
+      <div class="criterion-right"><div class="criterion-value na-color">N/A</div></div>
+    </div>`;
+  }
+  const cls = pass ? 'passing' : 'failing';
+  const icon = pass ? '✔' : '✗';
+  const valCls = pass ? 'pass-color' : 'fail-color';
+  const display = typeof value === 'number' ? value.toFixed(2) : value;
+  return `<div class="criterion-row ${cls}">
+    <div class="criterion-left"><div class="criterion-icon">${icon}</div>
+    <div>${nameEl}<div class="criterion-threshold">${threshold}</div></div></div>
+    <div class="criterion-right"><div class="criterion-value ${valCls}">${display}</div></div>
+  </div>`;
+}
+
+// ─── FMP DATA FETCH ───────────────────────────────────────────────────────────
+
+const FMP = 'https://financialmodelingprep.com/api/v3';
+
+async function fmpGet(path, apiKey) {
+  const sep = path.includes('?') ? '&' : '?';
+  const res = await fetch(`${FMP}${path}${sep}apikey=${apiKey}`);
+  if (!res.ok) throw new Error(`FMP API error ${res.status} on ${path}`);
+  return res.json();
+}
+
+async function fetchStockData(ticker) {
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error('No API key found. Please enter your FMP API key above and click Save Key.');
+
+  const t = ticker.toUpperCase();
+
+  // Parallel fetch: quote, TTM key metrics, TTM ratios, financial growth
+  const [quoteArr, metricsArr, ratiosArr, growthArr] = await Promise.all([
+    fmpGet(`/quote/${t}`, apiKey),
+    fmpGet(`/key-metrics-ttm/${t}`, apiKey),
+    fmpGet(`/ratios-ttm/${t}`, apiKey),
+    fmpGet(`/financial-growth/${t}?limit=1`, apiKey)
+  ]);
+
+  if (!quoteArr || quoteArr.length === 0) throw new Error(`Ticker "${t}" not found. Check the symbol and try again. International tickers may need an exchange suffix, e.g. ELO.OL for Oslo.`);
+
+  const q  = quoteArr[0]  || {};
+  const m  = metricsArr[0] || {};
+  const r  = ratiosArr[0]  || {};
+  const g  = growthArr[0]  || {};
+
+  const n = v => (v !== undefined && v !== null && !isNaN(v) && isFinite(v)) ? parseFloat(v) : null;
+
+  // Map fields — FMP uses camelCase
+  return {
+    ticker:               t,
+    company_name:         q.name || t,
+    exchange:             q.exchange || '',
+    sector:               '', // not in quote endpoint on free tier
+    current_price:        n(q.price),
+    market_cap:           n(q.marketCap),
+    pe_ratio:             n(q.pe) ?? n(r.priceEarningsRatioTTM),
+    peg_ratio:            n(r.priceEarningsToGrowthRatioTTM) ?? n(m.pegRatioTTM),
+    free_cash_flow_millions: n(m.freeCashFlowPerShareTTM) !== null && n(q.sharesOutstanding) !== null
+                            ? n(m.freeCashFlowPerShareTTM) * n(q.sharesOutstanding) / 1e6
+                            : null,
+    debt_to_equity:       n(r.debtEquityRatioTTM) ?? n(m.debtToEquityTTM),
+    roic_percent:         n(m.roicTTM) !== null ? n(m.roicTTM) * 100 : null,
+    eps_ttm:              n(q.eps),
+    book_value_per_share: n(m.bookValuePerShareTTM),
+    eps_growth_percent:   n(g.epsgrowth) !== null ? n(g.epsgrowth) * 100 : null,
+    fcf_yield_percent:    n(m.freeCashFlowYieldTTM) !== null ? n(m.freeCashFlowYieldTTM) * 100 : null,
+    revenue_growth_percent: n(g.revenueGrowth) !== null ? n(g.revenueGrowth) * 100 : null,
+    operating_margin_percent: n(r.operatingProfitMarginTTM) !== null ? n(r.operatingProfitMarginTTM) * 100 : null,
+    data_date:            'TTM / most recent annual',
+    notes:                'Data from Financial Modeling Prep (TTM where available).'
+  };
+}
+
+// ─── SCREENER LOGIC ───────────────────────────────────────────────────────────
+
+function runScreenerLogic(d) {
+  const pe   = d.pe_ratio,   peg  = d.peg_ratio,  fcf  = d.free_cash_flow_millions;
+  const de   = d.debt_to_equity, roic = d.roic_percent, eps  = d.eps_ttm;
+  const bvps = d.book_value_per_share, price = d.current_price;
+  const epsg = d.eps_growth_percent,   fcfy  = d.fcf_yield_percent;
+  const revg = d.revenue_growth_percent, opm = d.operating_margin_percent;
+
+  // BASE
+  const b_pe  = pe   !== null ? pe   < 15  : null;
+  const b_peg = peg  !== null ? peg  < 1   : null;
+  const b_fcf = fcf  !== null ? fcf  > 0   : null;
+  const b_de  = de   !== null ? de   < 0.5 : null;
+  const b_roi = roic !== null ? roic > 12  : null;
+  const basePass = [b_pe,b_peg,b_fcf,b_de,b_roi].every(c => c === true);
+
+  // GRAHAM
+  let grahamNumber = null;
+  if (eps !== null && bvps !== null && eps > 0 && bvps > 0)
+    grahamNumber = Math.sqrt(22.5 * eps * bvps);
+  let grahamResult = 'nosignal', grahamLabel = 'No Signal';
+  if (grahamNumber !== null && price !== null) {
+    if      (price <= grahamNumber)        { grahamResult = 'candidate'; grahamLabel = 'Candidate'; }
+    else if (price <= grahamNumber * 1.10) { grahamResult = 'near';      grahamLabel = 'Near Miss'; }
+  }
+
+  // LYNCH
+  const l_peg  = peg  !== null ? peg < 1                     : null;
+  const l_epsg = epsg !== null ? (epsg >= 10 && epsg <= 30)  : null;
+  const l_de   = de   !== null ? de  < 0.6                   : null;
+  const l_eps  = eps  !== null ? eps > 0                     : null;
+  const lynchPass = [l_peg,l_epsg,l_de,l_eps].every(c => c === true);
+  const lynchResult = lynchPass ? 'candidate' : 'nosignal';
+  const lynchLabel  = lynchPass ? 'Candidate' : 'No Signal';
+
+  // BUFFETT
+  const bf_roi  = roic !== null ? roic > 15 : null;
+  const bf_fcf  = fcf  !== null ? fcf  > 0  : null;
+  const bf_fcfy = fcfy !== null ? fcfy > 5  : null;
+  const bf_revg = revg !== null ? revg > 5  : null;
+  const bf_opm  = opm  !== null ? opm  > 15 : null;
+  const buffArr = [bf_roi,bf_fcf,bf_fcfy,bf_revg,bf_opm];
+  const buffFails  = buffArr.filter(c => c === false).length;
+  const buffPasses = buffArr.filter(c => c === true).length;
+  let buffResult, buffLabel;
+  if (!buffArr.some(c => c !== null)) { buffResult = 'nosignal'; buffLabel = 'No Signal'; }
+  else if (buffFails === 0 && buffPasses > 0) { buffResult = 'candidate'; buffLabel = 'Candidate'; }
+  else if (buffFails === 1)                   { buffResult = 'near';      buffLabel = 'Near Miss'; }
+  else                                        { buffResult = 'nosignal';  buffLabel = 'No Signal'; }
+
+  return { basePass, b_pe, b_peg, b_fcf, b_de, b_roi,
+           grahamNumber, grahamResult, grahamLabel,
+           l_peg, l_epsg, l_de, l_eps, lynchResult, lynchLabel,
+           bf_roi, bf_fcf, bf_fcfy, bf_revg, bf_opm, buffResult, buffLabel };
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+
+function renderResults(d, s) {
+  // Header
+  document.getElementById('stockHeaderCard').innerHTML = `
+    <div>
+      <div class="ticker-tag">🏦 ${d.ticker} · ${d.exchange}</div>
+      <div class="company-name">${d.company_name}</div>
+      <div class="stock-meta">${d.data_date}</div>
+    </div>
+    <div class="stock-price-block">
+      <div class="price-label">Current Price</div>
+      <div class="price">${d.current_price !== null ? '$' + d.current_price.toFixed(2) : 'N/A'}</div>
+    </div>`;
+
+  document.getElementById('dataNote').textContent = '⚑ ' + d.notes;
+
+  // Metrics grid
+  const chips = [
+    { label:'P/E Ratio',      val: d.pe_ratio !== null ? d.pe_ratio.toFixed(2) : null,                          tip:'pe_ratio' },
+    { label:'PEG Ratio',      val: d.peg_ratio !== null ? d.peg_ratio.toFixed(2) : null,                        tip:'peg_ratio' },
+    { label:'Free Cash Flow', val: d.free_cash_flow_millions !== null ? '$'+d.free_cash_flow_millions.toFixed(0)+'M' : null, tip:'free_cash_flow' },
+    { label:'Debt / Equity',  val: d.debt_to_equity !== null ? d.debt_to_equity.toFixed(2) : null,              tip:'debt_to_equity' },
+    { label:'ROIC',           val: d.roic_percent !== null ? d.roic_percent.toFixed(1)+'%' : null,              tip:'roic' },
+    { label:'EPS (TTM)',      val: d.eps_ttm !== null ? '$'+d.eps_ttm.toFixed(2) : null,                        tip:'eps_ttm' },
+    { label:'Book Value/Sh',  val: d.book_value_per_share !== null ? '$'+d.book_value_per_share.toFixed(2) : null, tip:'book_value' },
+    { label:'EPS Growth',     val: d.eps_growth_percent !== null ? d.eps_growth_percent.toFixed(1)+'%' : null,  tip:'eps_growth' },
+    { label:'FCF Yield',      val: d.fcf_yield_percent !== null ? d.fcf_yield_percent.toFixed(1)+'%' : null,    tip:'fcf_yield' },
+    { label:'Revenue Growth', val: d.revenue_growth_percent !== null ? d.revenue_growth_percent.toFixed(1)+'%' : null, tip:'revenue_growth' },
+    { label:'Oper. Margin',   val: d.operating_margin_percent !== null ? d.operating_margin_percent.toFixed(1)+'%' : null, tip:'operating_margin' },
+  ];
+
+  document.getElementById('metricsGrid').innerHTML = chips.map(c => {
+    const t = TIPS[c.tip];
+    const tipContent = t ? `<span class="tip-icon">?</span><div class="tip-bubble"><div class="tip-calc">${t.calc}</div><div class="tip-why">${t.why}</div></div>` : '';
+    return `<div class="metric-chip">
+      <div class="m-label">${c.label}${tipContent}</div>
+      <div class="m-value ${c.val===null?'na':''}">${c.val!==null?c.val:'N/A'}</div>
+    </div>`;
+  }).join('');
+
+  const setB = (id, type, label) => { document.getElementById(id).innerHTML = makeBadge(type, label); };
+
+  // BASE
+  setB('badgeBase', s.basePass ? 'pass' : 'fail', s.basePass ? 'PASS' : 'FAIL');
+  document.getElementById('listBase').innerHTML =
+    criterionRow('P/E Ratio',      'Below 15',   d.pe_ratio,               s.b_pe,  'pe_ratio') +
+    criterionRow('PEG Ratio',      'Below 1',    d.peg_ratio,              s.b_peg, 'peg_ratio') +
+    criterionRow('Free Cash Flow', 'Positive',   d.free_cash_flow_millions, s.b_fcf, 'free_cash_flow') +
+    criterionRow('Debt / Equity',  'Below 0.5',  d.debt_to_equity,         s.b_de,  'debt_to_equity') +
+    criterionRow('ROIC',           'Above 12%',  d.roic_percent,           s.b_roi, 'roic');
+
+  // GRAHAM
+  setB('badgeGraham', s.grahamResult, s.grahamLabel);
+  document.getElementById('grahamCalc').innerHTML = s.grahamNumber !== null
+    ? `<div class="graham-calc">
+        <div class="gc-formula">Graham Number = √( 22.5 × ${d.eps_ttm?.toFixed(2)} × ${d.book_value_per_share?.toFixed(2)} )</div>
+        <div class="gc-number">$${s.grahamNumber.toFixed(2)}</div>
+       </div>`
+    : `<div class="graham-calc"><div class="gc-formula" style="color:var(--text-dim)">Cannot compute — EPS or Book Value unavailable</div></div>`;
+  document.getElementById('listGraham').innerHTML =
+    criterionRow('Stock Price vs Graham Number',
+      `Below $${s.grahamNumber !== null ? s.grahamNumber.toFixed(2) : '?'}`,
+      s.grahamNumber !== null && d.current_price !== null ? d.current_price : null,
+      s.grahamResult === 'candidate', 'price_vs_graham');
+
+  // LYNCH
+  setB('badgeLynch', s.lynchResult, s.lynchLabel);
+  document.getElementById('listLynch').innerHTML =
+    criterionRow('PEG Ratio',     'Below 1',    d.peg_ratio,          s.l_peg,  'peg_ratio') +
+    criterionRow('EPS Growth',    '10% – 30%',  d.eps_growth_percent, s.l_epsg, 'eps_growth') +
+    criterionRow('Debt / Equity', 'Below 0.6',  d.debt_to_equity,     s.l_de,   'debt_to_equity') +
+    criterionRow('EPS',           'Positive',   d.eps_ttm,            s.l_eps,  'eps_ttm');
+
+  // BUFFETT
+  setB('badgeBuffett', s.buffResult, s.buffLabel);
+  document.getElementById('listBuffett').innerHTML =
+    criterionRow('ROIC',             'Above 15%', d.roic_percent,              s.bf_roi,  'roic') +
+    criterionRow('Free Cash Flow',   'Positive',  d.free_cash_flow_millions,   s.bf_fcf,  'free_cash_flow') +
+    criterionRow('FCF Yield',        'Above 5%',  d.fcf_yield_percent,         s.bf_fcfy, 'fcf_yield') +
+    criterionRow('Revenue Growth',   'Above 5%',  d.revenue_growth_percent,    s.bf_revg, 'revenue_growth') +
+    criterionRow('Operating Margin', 'Above 15%', d.operating_margin_percent,  s.bf_opm,  'operating_margin');
+
+  // OVERALL SIGNAL
+  const cands = [s.grahamResult,s.lynchResult,s.buffResult].filter(r=>r==='candidate').length;
+  const nears  = [s.grahamResult,s.lynchResult,s.buffResult].filter(r=>r==='near').length;
+  let sigText, sigDesc, sigColor, glowColor;
+
+  if (s.basePass && cands >= 1) {
+    sigText='✅ Strong Signal'; sigColor='#34c77b'; glowColor='rgba(52,199,123,0.13)';
+    sigDesc=`${d.ticker} passes the strict base filter AND at least one major framework — the strongest possible signal.`;
+  } else if (cands >= 2) {
+    sigText='⭐ Multi-Framework Candidate'; sigColor='#f5a623'; glowColor='rgba(245,166,35,0.10)';
+    sigDesc=`Two or more legendary investors would likely be interested in ${d.ticker}.`;
+  } else if (cands === 1) {
+    sigText='🔍 Single Framework Candidate'; sigColor='#4a7cf7'; glowColor='rgba(74,124,247,0.10)';
+    sigDesc=`One framework sees value in ${d.ticker}, but others disagree. Deserves deeper investigation.`;
+  } else if (nears >= 2) {
+    sigText='🟡 Multiple Near Misses'; sigColor='#f5a623'; glowColor='rgba(245,166,35,0.08)';
+    sigDesc=`${d.ticker} is close on several metrics. Worth monitoring — may qualify soon.`;
+  } else if (nears === 1) {
+    sigText='🟡 Near Miss'; sigColor='#f5a623'; glowColor='rgba(245,166,35,0.06)';
+    sigDesc=`One framework finds ${d.ticker} close but not quite qualifying. Monitor the weak metrics.`;
+  } else {
+    sigText='— No Signal'; sigColor='#636880'; glowColor='rgba(100,100,130,0.04)';
+    sigDesc=`No current signal from any methodology for ${d.ticker}.`;
+  }
+
+  document.getElementById('signalText').textContent = sigText;
+  document.getElementById('signalText').style.color = sigColor;
+  document.getElementById('signalDesc').textContent = sigDesc;
+  document.getElementById('overallSignal').style.setProperty('--signal-glow', glowColor);
+
+  document.getElementById('results').classList.add('visible');
+  setTimeout(() => document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' }), 100);
+}
+
+// ─── MAIN FLOW ────────────────────────────────────────────────────────────────
+
+async function runSearch() {
+  if (isRunning) return;
+  const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+  if (!ticker) { showError('Please enter a stock ticker symbol.'); return; }
+
+  isRunning = true;
+  clearError();
+  hideResults();
+  setBtnState(true);
+  setLoading(true, ticker);
+
+  const steps = ['Fetching quote data…','Retrieving TTM key metrics…','Loading ratios & growth…','Running screener analysis…'];
+  let si = 0;
+  setLoadingStep(steps[0]);
+  const iv = setInterval(() => { si = (si+1) % steps.length; setLoadingStep(steps[si]); }, 1400);
+
+  try {
+    const data = await fetchStockData(ticker);
+    const screener = runScreenerLogic(data);
+    renderResults(data, screener);
+  } catch(err) {
+    showError('⚠ ' + (err.message || 'Failed to fetch data. Check the ticker and try again.'));
+  } finally {
+    clearInterval(iv);
+    setLoading(false);
+    setBtnState(false);
+    isRunning = false;
+  }
+}
+
+// Tooltip edge-flip
+document.addEventListener('mouseover', e => {
+  const chip = e.target.closest('.metric-chip') || e.target.closest('.has-tip');
+  if (!chip) return;
+  const bubble = chip.querySelector('.tip-bubble');
+  if (!bubble) return;
+  bubble.classList.remove('flip-left');
+  const rect = bubble.getBoundingClientRect();
+  if (rect.right > window.innerWidth - 12) bubble.classList.add('flip-left');
+});
+
+// Enter key
+document.getElementById('tickerInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runSearch();
+});
+
+// Also allow Enter in API key field
+document.getElementById('apiKeyInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveApiKey();
+});
+</script>
+</body>
+</html>
